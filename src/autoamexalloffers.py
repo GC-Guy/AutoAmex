@@ -33,6 +33,7 @@ def getAddedOffers(username, password, outputlog = True, browser = "Chrome"):
   # driver = webdriver.PhantomJS()
   # driver = webdriver.Firefox()
   driver = getDriver(browser)
+  majorOfferDollarMap = dict()
   majorOfferDescMap = dict()
   majorOfferDateMap = dict()
   majorDateOfferPair = set()
@@ -64,21 +65,27 @@ def getAddedOffers(username, password, outputlog = True, browser = "Chrome"):
     closeFeedback(driver)
 
     # main program
-    offers = driver.find_elements_by_class_name("ah-card-offer")
+    offers = driver.find_elements_by_xpath('//*[@id="offers"]/div/section[2]/section/div')
+    offers.pop(0)
     offerstext = [offer.text.encode('utf-8') for offer in offers]
     offersplit = [text.split('\n') for text in offerstext]
+    offerDollarMap = dict()
     offerDescMap = dict()
     offerDateMap = dict()
     dateOfferPair = set()
     offersSet = set()
     # discard expired offers
     for sp in offersplit:
-      expiration = dt.strptime(sp[3], '%m/%d/%Y')
-      if expiration > dt.now():
-        offerDescMap[sp[0]] = sp[1]
-        offerDateMap[sp[0]] = sp[3]
-        dateOfferPair.add((expiration, sp[0]))
-        offersSet.add(sp[0])
+      if sp[2] == 'EXPIRES':
+        expiration = sp[3]
+      else:
+        expiration = sp[2]
+      offerDollarMap[sp[0]+sp[1]] = sp[0]
+      offerDescMap[sp[0]+sp[1]] = sp[1]
+      offerDateMap[sp[0]+sp[1]] = expiration
+      dateOfferPair.add((expiration, sp[0]+sp[1]))
+      offersSet.add(sp[0]+sp[1])
+    majorOfferDollarMap.update(offerDollarMap)
     majorOfferDescMap.update(offerDescMap)
     majorOfferDateMap.update(offerDateMap)
     majorDateOfferPair.update(dateOfferPair)
@@ -91,22 +98,11 @@ def getAddedOffers(username, password, outputlog = True, browser = "Chrome"):
       offers = [e.find_element_by_xpath('..') for e in offers]
       offerstext = [n.text.encode('utf-8') for n in offers]
       offerstext = filter(None, offerstext)
-      #offersplit = [text.split('\n') for text in offerstext]
-      #offerexpires = driver.find_elements_by_class_name("offer-expires")
-      #offerdates = [e.text.encode('utf-8').split('\n')[1] for e in offerexpires]
       tmpnames = [n.split('\n')[1] for n in offerstext]
       offerDescMap = {n.split('\n')[1]: n.split('\n')[0] for n in offerstext}
       for n in tmpnames:
         offersSet.add(n)
       majorOfferDescMap.update(offerDescMap)
-      #tmpdesc = [n.text.encode('utf-8').split('\n')[0] for n in offers]
-      #for i in len(tmpnames):
-      #  expiration = dt.strptime(offerexpires[i], '%m/%d/%Y')
-      #  if expiration > dt.now():
-      #    offerDescMap[tmpnames[i]] = tmpdesc[i]
-      #    offerDateMap[tmpnames[i]] = offerexpires[i]
-      #    dateOfferPair.add((expiration, tmpnames[i]))
-      #    offersSet.add(tmpnames[i])
     userOffersList.append(offersSet)
 
     time.sleep(1)
@@ -121,7 +117,7 @@ def getAddedOffers(username, password, outputlog = True, browser = "Chrome"):
   majorDateOfferList.sort(key=lambda tup:tup[0])
   # write 1st line
   for dateOffer in majorDateOfferList:
-    offer = dateOffer[1].replace(',', '.')
+    offer = majorOfferDollarMap[dateOffer[1]].replace(',', ' and')
     sys.stdout.write(','+offer)
   sys.stdout.write('\n')
   # write 2nd line
