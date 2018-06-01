@@ -8,6 +8,7 @@ from helper import loadConfig, closeFeedback, clickOnViewMore, clickOnOffers, am
   amexLogOut, clickOnLoadMore, getDriver, collectOfferNames
 
 amexWebsite = "https://online.americanexpress.com/myca/logon/us/action/LogonHandler?request_type=LogonHandler&Face=en_US&inav=iNavLnkLog"
+offer_page = "https://global.americanexpress.com/offers/eligible"
 
 def loginTest(username, password, outputlog = True, browser = "PhantomJS"):
   orig_stdout = sys.stdout # re-route output
@@ -53,8 +54,10 @@ def loginTest(username, password, outputlog = True, browser = "PhantomJS"):
       print "Something is wrong with login"
       continue # end current loop
 
+    driver.get(offer_page)
     closeFeedback(driver) # just in case the feedback banner appears
     clickOnLoadMore(driver) # scroll down and click load more
+    #driver.get(offer_page)
 
     # store offer names and click on offers
     offernames = collectOfferNames(driver)
